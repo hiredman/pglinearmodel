@@ -1,0 +1,11 @@
+[package]
+name = "pglinearmodel"
+version = "0.0.1"
+authors = ["Kevin Downey <redchin@gmail.com>"]
+[dependencies]
+postgres = "0.8.5"
+rand = "0.3.7"
+time = "*"
+csv = "0.14.2"
+# [dependencies.postgres]
+# git = "file:///home/kevin/rust-postgres"
