@@ -12,46 +12,25 @@ use std::thread::{sleep_ms};
 use std::io::{stdout,Write};
 use csv::Writer;
 
-struct Reservoir {
-    r: Vec<(f64, (f64, f64))>,
-    size: usize
+struct RingBuffer {
+    d: Vec<(f64, f64)>,
+    size: usize,
+    pos:usize
 }
 
-fn weight () -> f64 {
-    random::<f64>().powf((1.0f64 / ((precise_time_ns()/1000) as f64).log(10.0)))
-}
-
-fn update (r: Reservoir, value: (f64, f64)) -> Reservoir {
-    let new_pair = (weight(), value);
-    let mut new_v = Vec::new();
-    let mut cont = true;
-    let mut idx = 0;
-    while cont {
-        if new_v.len() == r.size {
-            cont = false
-        } else if idx == r.r.len() {
-            new_v.push(new_pair);
-            cont = false
-        } else if r.r[idx].0 < new_pair.0 {
-            new_v.push(r.r[idx])
-        } else {
-            new_v.push(new_pair);
-            for ii in idx..min(r.size, r.r.len()) {
-                new_v.push(r.r[ii])
-            }
-            cont = false;
-        }
-        idx = idx + 1
+fn update (r: RingBuffer, value: (f64, f64)) -> RingBuffer {
+    let p = r.pos % r.size;
+    if r.d.len() > p {
+        let mut d = r.d.clone();
+        d[p] = value;
+        let d1 = d;
+        RingBuffer{d:d1,size:r.size,pos:p+1}
+    } else {
+        let mut d = r.d.clone();
+        d.push(value);
+        let d1 = d;
+        RingBuffer{d:d1,size:r.size,pos:p+1}
     }
-    Reservoir {r: new_v, size: r.size}
-}
-
-fn values (r: &Reservoir) -> Vec<(f64, f64)> {
-    let mut new_v = Vec::new();
-    for i in 0..r.r.len() {
-        new_v.push(r.r[i].1)
-    }
-    new_v
 }
 
 fn pair_wise_mean (v: &Vec<(f64, f64)>) -> (f64, f64) {
@@ -88,7 +67,7 @@ fn main () {
         (Some(url), Some(query)) => {
             let conn = Connection::connect(url.to_str().unwrap(), &SslMode::None).unwrap();
             let stmt = conn.prepare(query.to_str().unwrap()).unwrap();
-            let mut r = Reservoir{r:Vec::new(), size: 10};
+            let mut r = RingBuffer{d:Vec::new(), size: 100, pos: 0};
             let mut i = 0;
             loop {
                 let mut w = Writer::from_memory().delimiter(b'\t');
@@ -100,7 +79,7 @@ fn main () {
                     let y = row.get(1);
                     r = update(r, (x,y));
                     if i > 2 {
-                        let (m, b) = least_squares_line_of_best_fit(values(&r));
+                        let (m, b) = least_squares_line_of_best_fit(r.d.clone());
                         w.encode((now_utc().rfc3339().to_string(), x, y, x_intercept(m, b), b, m)).ok().unwrap();
                     }
                 };
