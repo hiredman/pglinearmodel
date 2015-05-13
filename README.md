@@ -23,8 +23,10 @@ The headers are reprinted every 20 lines.
 An example usage would look something like this:
 
 ```
-PG_QUERY="SELECT CAST(date_part('epoch', NOW()) AS float) AS date, CAST(COUNT(id) AS float) AS number FROM some_table"
-PG_URL="postgresql://kevin@localhost/somedatabase"
+QUERY="SELECT CAST(date_part('epoch', NOW()) AS float) AS date, CAST(COUNT(id) AS float) AS number FROM some_table"
+URL="postgresql://kevin@localhost/somedatabase"
+BUFFER=100
+INTERVAL=$(( 60 * 1000 ))
 ./pglinearmodel
 ```
 
@@ -34,5 +36,9 @@ used to estimate future counts of rows in some_table. The estimates
 will be all over the place if the the relationship between X and Y is
 non-linear.
 
-The url in PG_URL follows the url syntax used by
+The url in URL follows the url syntax used by
 [rust-postgres](https://github.com/sfackler/rust-postgres).
+
+BUFFER is the size of the ring buffer samples are kept in.
+
+INTERVAL is the polling interval.

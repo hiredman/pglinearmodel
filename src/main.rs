@@ -63,11 +63,11 @@ fn x_intercept (m: f64, b: f64) -> f64 {
 }
 
 fn main () {
-    match (var_os("PG_URL"), var_os("PG_QUERY"))  {
-        (Some(url), Some(query)) => {
+    match (var_os("URL"), var_os("QUERY"), var_os("BUFFER"), var_os("INTERVAL"))  {
+        (Some(url), Some(query), Some(buffer_size_s), Some(interval_s)) => {
             let conn = Connection::connect(url.to_str().unwrap(), &SslMode::None).unwrap();
             let stmt = conn.prepare(query.to_str().unwrap()).unwrap();
-            let mut r = RingBuffer{d:Vec::new(), size: 100, pos: 0};
+            let mut r = RingBuffer{d:Vec::new(), size: buffer_size_s.to_str().unwrap().parse::<usize>().unwrap(), pos: 0};
             let mut i = 0;
             loop {
                 let mut w = Writer::from_memory().delimiter(b'\t');
@@ -84,10 +84,10 @@ fn main () {
                     }
                 };
                 stdout().write_all(w.as_bytes()).ok().unwrap();
-                sleep_ms(1000*60);
+                sleep_ms(interval_s.to_str().unwrap().parse::<u32>().unwrap());
                 i = i + 1
             }
         },
-        _ => println!("Be sure to define PG_URL and PG_QUERY")
+        _ => println!("Be sure to define URL, QUERY, BUFFER, and INTERVAL")
     }
 }
